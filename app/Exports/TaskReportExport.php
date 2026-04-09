@@ -39,6 +39,7 @@ class TaskReportExport implements FromCollection, WithHeadings, WithMapping, Wit
             'LOCATION',
             'DEPARTMENT',
             'PERFORMED BY',
+            'ASSIGNED BY',   // <--- NEW COLUMN ADDED HERE
             'ENTRY DATE',
             'START TIME',
             'END TIME',
@@ -59,8 +60,9 @@ class TaskReportExport implements FromCollection, WithHeadings, WithMapping, Wit
             $task->t_title,
             $task->t_description,
             $task->location ?? '',
-            $task->employee_dept_name,
-            $task->assigned_to_name,
+            $task->employee_dept_name ?? '',
+            $task->assigned_to_name ?? '',
+            $task->assigned_by_name ?? '', // <--- NEW DATA MAPPED HERE
             date('d-M-Y', strtotime($task->t_start_time)),
             $startTime,
             $endTime,
@@ -97,8 +99,8 @@ class TaskReportExport implements FromCollection, WithHeadings, WithMapping, Wit
                 // Insert 8 rows. Headers move from Row 1 -> Row 9.
                 $event->sheet->insertNewRowBefore(1, 8);
 
-                // Main Title
-                $sheet->mergeCells('C4:J4');
+                // Main Title (Merged up to column K now)
+                $sheet->mergeCells('C4:K4');
                 $sheet->setCellValue('C4', 'IT DEPARTMENT TASK REPORT');
                 $sheet->getStyle('C4')->applyFromArray([
                     'font' => ['bold' => true, 'size' => 26, 'color' => ['rgb' => '5d4085']],
@@ -106,10 +108,10 @@ class TaskReportExport implements FromCollection, WithHeadings, WithMapping, Wit
                 ]);
 
                 // --- C. HEADER STYLE ---
-                // FIX: Changed from 8 to 9 because we inserted 8 rows before Row 1.
                 $headerRow = 9;
 
-                $sheet->getStyle('A'.$headerRow.':J'.$headerRow)->applyFromArray([
+                // Styled up to column K
+                $sheet->getStyle('A'.$headerRow.':K'.$headerRow)->applyFromArray([
                     'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF'], 'size' => 12],
                     'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '5d4085']],
                     'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
@@ -119,11 +121,13 @@ class TaskReportExport implements FromCollection, WithHeadings, WithMapping, Wit
                 // --- D. DATA ALIGNMENT ---
                 $lastRow = $sheet->getHighestRow();
                 $sheet->getStyle('A'.$headerRow.':A'.$lastRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-                $sheet->getStyle('G'.$headerRow.':J'.$lastRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                // Center Dates, Times, and Status (Columns H, I, J, K)
+                $sheet->getStyle('H'.$headerRow.':K'.$lastRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
                 // --- E. STATUS COLORS ---
                 for ($row = $headerRow + 1; $row <= $lastRow; $row++) {
-                    $statusCell = 'J' . $row;
+                    // Status is now in column K (11th column)
+                    $statusCell = 'K' . $row;
                     $status = $sheet->getCell($statusCell)->getValue();
 
                     $fontColor = '000000';
@@ -147,20 +151,20 @@ class TaskReportExport implements FromCollection, WithHeadings, WithMapping, Wit
                 }
 
                 // --- F. BORDERS ---
-                $sheet->getStyle('A'.$headerRow.':J'.$lastRow)->applyFromArray([
+                // Borders up to column K
+                $sheet->getStyle('A'.$headerRow.':K'.$lastRow)->applyFromArray([
                     'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]]
                 ]);
 
                 // --- G. FOOTER SIGNATURES ---
-                // FIX: Changed from +40 to +5 so it appears visibly at the bottom
-                $sigRow = $lastRow + 50;
+                // Leaving a clean gap of 5 rows before signatures
+                $sigRow = $lastRow + 5;
 
                 $signatures = [
                     'A' => 'IT MANAGER',
                     'D' => 'TECHNICAL MANAGER',
                     'G' => 'MALL MANAGER',
-                    'J' => 'DGM',
-                    'M' => 'EDG',
+                    'K' => 'DGM', // Shifted to K to align with the new right edge
                 ];
 
                 foreach ($signatures as $col => $title) {
